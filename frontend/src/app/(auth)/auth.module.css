@@ -1,0 +1,41 @@
+.button{
+    width: 100%;
+    border-radius: 10px;
+    background-color: #007FFF;
+    padding: 5px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.button:hover{
+    transform:scale(1.1)
+}
+
+.textBlue{
+    color:#007FFF;
+    font-size: 20px;
+    font-weight: 400;
+}
+
+.followInputImage{
+    position: absolute;
+    right: 10px;
+    top: 3px;
+}
+
+
+.hideAlert{
+    position: absolute;
+    width: 33%;
+    top: 0;
+    right: -100%;
+    transition: all 0.5s ease;
+}
+
+.openAlert{
+    position: absolute;
+    width: 33%;
+    top: 0;
+    right: 0;
+    transition: all 0.5s ease;
+}
