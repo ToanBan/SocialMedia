@@ -3,38 +3,58 @@ import { io } from 'socket.io-client';
 
 const socket = io("http://localhost:3001", { withCredentials: true });
 
+interface MessageProps{
+    senderId:string
+    message:string
+}
+
+interface AllMessage{
+    senderId:string, 
+    receiverId:string, 
+    messages:[{
+        text:string
+    }]
+}
+
 const useSocket = (userId: string) => {
-    const [messages, setMessages] = useState<{ senderId: string, message: string}[]>([]);
+    const [textMessage, setTextMessage] = useState<MessageProps[]>([]);
+    const [allMessage, setAllMessage] = useState<AllMessage[]>([]);
+    useEffect(()=> {
+        if(!userId) return;
+     
+        socket.emit('join', userId);
 
-    useEffect(() => {
-        if (!userId) return;
-
-        socket.emit("join", userId);
-
-        socket.on("receiveMessage", (message) => {
-            console.log("tin nhắn đã được nhận", message)
-            setMessages((prev) => [...prev, message]);
-        });
+        socket.on('receiveMessage', (data) => {
+            setTextMessage((prev)=>{
+                return [...prev, data]
+            })
+        })
 
         return () => {
-            socket.off("receiveMessage");
-        };
-    }, [userId]);
+            socket.off('receiveMessage');
+        }
+    }, [userId])
 
-    const sendMessage = (senderId: string, receiverId: string, message: string) => {
-        console.log("Gửi tin nhắn:", { senderId, receiverId, message });
-        socket.emit("sendMessage", { senderId, receiverId, message });
+
+    const sendMessage = ({senderId, receiverId, message}: { senderId: string, receiverId: string, message: string }) => {
+        socket.emit('sendMessage', { senderId, receiverId, message });
+        setTextMessage((prev) => {
+            return [...prev, {senderId, receiverId, message}]
+        })
     };
 
-    const getMessages = (senderId: string, receiverId: string) => {
-        socket.emit("getMessages", { senderId, receiverId }, (newMessages: { senderId: string, message: string }[]) => {
-            setMessages((prev) => [...prev, ...newMessages]); 
-            console.log('các tin nhắn', newMessages);
-        });
-    };
+    const getMessage = ({senderId, receiverId}:{senderId:string, receiverId:string}) => {
+        socket.emit('getMessages', ({senderId, receiverId}), (newMessage:MessageProps[]) => {
+            // setTextMessage((prev) => {
+            //     return [...prev, ...newMessage]
+            // })
+            setTextMessage(newMessage)
+        })
+    }
     
-
-    return { messages, sendMessage, getMessages };
+    
+    
+    return {sendMessage, textMessage, getMessage, allMessage}
 };
 
 export default useSocket;

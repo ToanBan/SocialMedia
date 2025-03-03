@@ -26,80 +26,67 @@ const io = new Server(server, {
 let users = new Map();
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
-  socket.on("join", (userId) => {
-    if (userId) {
+    socket.on('join', userId => {
       users.set(userId, socket.id);
       socket.join(userId);
-      console.log("Danh sách users online:", users);
-    }
-  });
+      console.log("Danh Sách Những Người Dùng Online", users)
+    })
 
-  socket.on('sendMessage', async ({ senderId, receiverId, message }) => {
-    try {
-      if (!senderId || !receiverId || !message) return;
-
-      const receiverSocketId = users.get(receiverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("receiveMessage", { senderId, message });
-        console.log("Tin nhắn đã gửi");
-      } else {
-        console.log("Người nhận không online");
-      }
+    socket.on('sendMessage', async(data) => {
+      const senderId = data.senderId;
+      const receiverId = data.receiverId;
+      const message = data.message
 
       let chat = await Message.findOne({
+        senderId, receiverId
+      })
+
+      if(!chat){
+        chat = await Message.create({
+          senderId, receiverId, messages: [{text:message, senderId}]
+        })
+        console.log("đã tạo thành công", chat)
+      }else{
+        chat.messages.push({text:message})
+      }
+      const receiveSocket = users.get(receiverId);
+      if(receiveSocket){
+        io.to(receiverId).emit('receiveMessage', {senderId, message});
+        console.log("Tin Nhắn Đã Gửi Đi")
+      }
+
+      
+    })
+
+    socket.on('getMessages', async(data, callback) => {
+      const senderId = data.senderId
+      const receiverId = data.receiverId;
+      if(!senderId){
+        console.log('Lỗi Không Thể Lấy Message');
+        return;
+      }
+
+      console.log({senderId, receiverId})
+
+      const chat = await Message.find({
         $or: [
-          { senderId, receiverId },
-          { senderId: receiverId, receiverId: senderId }
+            { senderId, receiverId },
+            { senderId: receiverId, receiverId: senderId }
         ]
       });
 
-      if (!chat) {
-        chat = new Message({
-          senderId,
-          receiverId,
-          messages: [{ text: message }]
-        });
-      } else {
-        chat.messages.push({ text: message });
-      }
+      const filterChatMessage = chat.flatMap((message) => 
+        message.messages.map((msg) => ({
+          senderId:msg.senderId, 
+          message:msg.text
+        }))
+      )
 
-      await chat.save();
-      console.log('Tin nhắn đã lưu', chat);
+      console.log(filterChatMessage)
 
-    } catch (error) {
-      console.error("Lỗi khi lưu tin nhắn:", error);
-    }
-  });
-
-  // socket.on('getMessages', async ({ senderId, receiverId }, callback) => {
-  //   try {
-  //     if (!senderId || !receiverId) return callback([]);
-
-  //     const chat = await Message.findOne({
-  //       $or: [
-  //         { senderId, receiverId },
-  //         { senderId: receiverId, receiverId: senderId }
-  //       ]
-  //     });
-
-  //     callback(chat?.messages || []);
-  //   } catch (error) {
-  //     console.log(error);
-  //     callback([]);
-  //   }
-  // });
-
-  socket.on("disconnect", () => {
-    for (let [key, value] of users.entries()) {
-      if (value === socket.id) {
-        users.delete(key);
-        break;
-      }
-    }
-    console.log("User disconnected:", socket.id);
-  });
+      if(callback) callback(filterChatMessage)
+    })
+    
 });
 
 app.use(cookieParser());

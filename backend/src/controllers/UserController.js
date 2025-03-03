@@ -65,13 +65,13 @@ exports.UserLogin = async(req, res) => {
 
     const token = jwt.sign(
         {userId:authencationUser._id, email:authencationUser.email, username:authencationUser.username}, 
-        'secretkey123456789', 
+        process.env.JWT_ACCESS_TOKEN, 
         {expiresIn:"30m"}
     )
 
     const refreshToken = jwt.sign(
         {userId:authencationUser._id, email:authencationUser.email, username:authencationUser.username}, 
-        'refreshkey123456789', 
+        process.env.JWT_REFRESH_TOKEN, 
         {expiresIn:"1d"}
     )
 
@@ -141,7 +141,7 @@ exports.RefreshToken = async (req, res) => {
     }
 
     try{
-        const decoded = jwt.verify(refreshToken, 'refreshkey123456789');
+        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN);
         const cachedToken = cache.get(decoded.userId);
 
         if(cachedToken !== refreshToken){

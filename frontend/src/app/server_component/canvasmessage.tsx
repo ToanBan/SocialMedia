@@ -21,13 +21,10 @@ const OffCanvasMessagePage = () => {
     const [data, setData] = useState<UserProps[]>([]);
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useState("");
-    const [messages, setMessages] = useState<Message[]>([]);
     const [detail, setDetail] = useState<UserProps | null>(null);
     const url = 'http://localhost:3001/uploads/profile/';
     const userId = typeof window !== "undefined" ? localStorage.getItem('userId') : null;
-
-    const { messages: socketMessages, sendMessage, getMessages } = useSocket(userId || "");
-
+    const {sendMessage, textMessage, getMessage, allMessage} = useSocket(userId as string)
     const fetchChatDetail = async (id: string) => {
         try {
             const res = await fetch(`http://localhost:3001/chatfollowingdetail/${id}`, {
@@ -55,36 +52,31 @@ const OffCanvasMessagePage = () => {
         fetchData();
     }, []);
 
-    useEffect(() => {
-        if (detail && userId) {
-            getMessages(userId, detail._id);
+    useEffect(()=> {
+        if(userId && detail){
+            getMessage({senderId:userId, receiverId:detail?._id})
         }
-    }, [detail, userId]);
-
-    useEffect(() => {
-        // Map socketMessages để đảm bảo có thuộc tính 'text'
-        const mappedMessages = socketMessages.map((msg: any) => ({
-            ...msg,
-            text: msg.text || msg.message,
-        }));
-        setMessages((prev) => [...prev, ...mappedMessages]); 
-    }, [socketMessages]);
+    }, [userId, detail?._id])
     
-    useEffect(() => {
-        console.log("Danh sách tin nhắn cập nhật:", messages);
-    }, [messages]);
-    
+    useEffect(()=> {
+        console.log(textMessage)
+    });
+  
     const OpenDetailChat = () => setOpen(!open);
 
+     
     const handleSendMessage = () => {
-        if (!message.trim() || !detail) return;
-        sendMessage(userId || "", detail._id, message);
-        // Thêm tin nhắn với thuộc tính 'text'
-        setMessages([...messages, { senderId: userId || "", text: message }]);
-        setMessage("");
+        if (!userId || !detail?._id || !message) {
+            console.error("Thiếu thông tin để gửi tin nhắn!");
+            return;
+        }
+        
+        sendMessage({ senderId: userId, receiverId: detail._id, message });
+        setMessage("")
     };
     
-    console.log("messgaes", messages);
+    
+    
 
     return (
         <>
@@ -124,9 +116,9 @@ const OffCanvasMessagePage = () => {
 
                             <div className="chat-container">
                                 <div className="message-list">
-                                    {messages.map((msg, index) => (
+                                    {textMessage.map((msg, index) => (
                                         <div key={index} className={`${msg.senderId === userId ? 'message-bubble-left' : 'message-bubble-right'}`}>
-                                            <p>{msg.text}</p>
+                                            <p>{msg.message}</p>
                                         </div>
                                     ))}
                                 </div>

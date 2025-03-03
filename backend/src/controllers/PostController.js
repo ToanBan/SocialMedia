@@ -18,7 +18,7 @@ exports.AddPost = async(req, res) => {
          })
     }
 
-    const decoded = jwt.verify(token, 'secretkey123456789');
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN);
     if(!decoded){
         return res.json({
             error:"Token không dúng"
@@ -45,7 +45,7 @@ exports.GetPost = async (req, res) => {
 exports.DeletePost = async (req, res) => {
     try {
         const token = req.cookies.token;
-        const decoded = jwt.verify(token, 'secretkey123456789');
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN);
         if (!decoded.userId) {
             return res.status(401).json({ error: "Token không đúng" });
         }
