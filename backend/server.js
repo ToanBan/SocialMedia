@@ -47,7 +47,8 @@ io.on("connection", (socket) => {
         })
         console.log("đã tạo thành công", chat)
       }else{
-        chat.messages.push({text:message})
+        chat.messages.push({text:message, senderId})
+        await chat.save()
       }
       const receiveSocket = users.get(receiverId);
       if(receiveSocket){
@@ -78,13 +79,14 @@ io.on("connection", (socket) => {
       const filterChatMessage = chat.flatMap((message) => 
         message.messages.map((msg) => ({
           senderId:msg.senderId, 
-          message:msg.text
+          message:msg.text, 
+          time:msg.createdAt
         }))
       )
 
-      console.log(filterChatMessage)
+      const sortedMessages = filterChatMessage.sort((a, b) => new Date(a.time) - new Date(b.time));
 
-      if(callback) callback(filterChatMessage)
+      if(callback) callback(sortedMessages)
     })
     
 });
